@@ -1,6 +1,9 @@
 import requests
 import time
 import pandas as pd
+import os
+from dotenv import load_dotenv
+import psycopg2
 URL = "https://archive-api.open-meteo.com/v1/archive"
 
 params = {
@@ -42,5 +45,29 @@ df = df.rename(columns={
 
 df["ngay"]=pd.to_datetime(df["ngay"]).dt.date
 
-print (df.head(10))
-print(df.dtypes)
+load_dotenv()
+conn = psycopg2.connect(
+    host=os.getenv("POSTGRES_HOST"),
+    port=os.getenv("POSTGRES_PORT"),
+    dbname=os.getenv("POSTGRES_DB"),
+    user=os.getenv("POSTGRES_USER"),
+    password=os.getenv("POSTGRES_PASSWORD"),
+)
+cur = conn.cursor()
+
+sql = """
+    INSERT INTO raw_weather_daily (ngay,nhiet_max,nhiet_min,luong_mua)
+    VALUES (%s,%s,%s,%s)
+    ON CONFLICT (ngay) DO UPDATE SET 
+    nhiet_max =EXCLUDED.nhiet_max,
+    nhiet_min   = EXCLUDED.nhiet_min,
+    luong_mua   = EXCLUDED.luong_mua,
+    ingested_at = now();
+    """
+
+for dong in df.itertuples(index=False):
+    cur.execute(sql, (dong.ngay,dong.nhiet_max, dong.nhiet_min, dong.luong_mua))
+conn.commit()
+print(f"da ghi {len(df)} dong vao raw_weather_daily")
+cur.close()
+conn.close()

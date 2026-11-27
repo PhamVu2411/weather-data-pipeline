@@ -1,0 +1,27 @@
+// Bảng fact: số đo mỗi ngày. Grain: 1 dòng = 1 ngày, ở 1 thành phố
+Table fact_weather_daily {
+  ngay date
+  location_id int
+  nhiet_max real
+  nhiet_min real
+  luong_mua real
+}
+
+// Dimension "khi nào": giống bảng nháp nhap_dim_date
+Table dim_date {
+  ngay date [pk]
+  thang int
+  thu int
+  la_cuoi_tuan boolean
+}
+
+// Dimension "ở đâu": bây giờ mới có 1 dòng là Hà Nội
+Table dim_location {
+  location_id int [pk]
+  ten varchar
+  latitude real
+  longitude real
+}
+
+Ref: fact_weather_daily.ngay > dim_date.ngay
+Ref: fact_weather_daily.location_id > dim_location.location_id
